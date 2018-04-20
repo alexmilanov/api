@@ -77,14 +77,14 @@ module.exports = {
 			}
 			
 			jwt.verify(token, req.app.get('secret'), (err, decoded) => {
-				if(err) res.json({
+				if(err) return res.json({
 							success: false,
 							message: 'Cannot verify the token'
 						});
 						
 				req.decoded = decoded;
 				
-				 return next();
+				 next();
 			});
 		},
 		register: function(req, res, next) {
