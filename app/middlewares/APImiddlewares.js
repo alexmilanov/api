@@ -104,13 +104,13 @@ module.exports = {
 			
 			var salt = generateSalt.getSalt(config.saltLength)
 			var hashedPassword = hashPassword.hashPassword(req.body.password, salt);
-			
+
 			var exists = false;
 			
 			User.findOne({username: req.body.username}, (err, users)=> {
 					if(err) throw err;
 		
-					if(users) {		
+					if(users) {	
 						return res.json({
 							success: false,
 							error: 'User already exists'
