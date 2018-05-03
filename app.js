@@ -6,7 +6,6 @@ var mongoose    = require('mongoose');
 
 var config = require('./app/config'); // get our config file
 var apiRoutes = require('./app/middlewares/routes');
-var cluster = require('cluster');
 
 var port = config.port;
 
