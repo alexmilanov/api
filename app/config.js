@@ -1,7 +1,7 @@
 module.exports = {
 
     'secret': 'ilovescotchyscotch',
-    'tokenValidityInSeconds': 1440,
+    'tokenValidityInSeconds': 60,
     'database': 'mongodb://localhost/User',
     'saltLength': 40,
     
@@ -13,6 +13,6 @@ module.exports = {
     
     'port': 3000,
     'redis': {
-        'expire': parseInt((+new Date)/1000) + 1440
+        'expire': 1440
     }
 };

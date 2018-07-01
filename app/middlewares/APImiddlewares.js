@@ -3,6 +3,7 @@ This file contain middlewares related with user registration, authentication, to
 */
 
 var jwt    = require('jsonwebtoken'); // used to create, sign, and verify tokens
+var randToken = require('rand-token')
 var config = require('../../app/config'); // get our config file
 var User   = require('../../app/models/user'); // get our mongoose model
 
@@ -11,11 +12,9 @@ var generateSalt = require('../../app/common/security/generateSalt.js');
 var hashPassword = require('../../app/common/security/hashPassword.js');
 
 var inMemoryStorage = require('../../app/common/inMemoryStorage');
-var token = null;
 
 module.exports = {
 		authenticate: function(req, res, next) {
-			
 			User.findOne({
 				username: req.body.username
 			}, 
@@ -43,13 +42,11 @@ module.exports = {
 								admin: user.admin
 						}
 						
-						token = jwt.sign(payload, req.app.get('secret'), {
+						let token = jwt.sign(payload, req.app.get('secret'), {
 								expiresIn: config.tokenValidityInSeconds
 						});
 
-						inMemoryStorage.setUsernameAndToken(token, req.body.username);
-
-						user.userAccountData.lastLogin = Date();
+						user.userAccountData.lastLogin = new Date();
 
 						user.save((err) => {
 							if(err) res.json({
@@ -57,35 +54,68 @@ module.exports = {
 								message: 'Cannot update last login'
 							})
 						})
-			
+						var refreshToken = randToken.uid(256)
+						
+						inMemoryStorage.setUsernameAndToken(refreshToken, req.body.username);
+
 						res.json({
 							success: true,
 							message: 'Done',
-							token: token
-					});
+							token: token,
+							refreshToken: refreshToken
+						});
 					}
 			})
 		},
 		checkToken: function(req, res, next) {
 			var token = req.body.token || req.query.token || req.headers['x-access-token'];
-	
-			if(!token) {
-				return res.status(403).send({
+			var username = req.body.username || req.query.username || req.headers['username'];
+			var refreshToken = req.body.refreshToken || req.query.refreshToken || req.headers['x-refresh-token'];
+
+			if(!token && !refreshToken) {
+				return res.status(401).send({
 					success: false,
 					message: 'No token provided'
 				});
 			}
-			
-			jwt.verify(token, req.app.get('secret'), (err, decoded) => {
-				if(err) return res.json({
-							success: false,
-							message: 'Cannot verify the token'
+
+			if(token) {
+				jwt.verify(token, req.app.get('secret'), (err, decoded) => {
+					if(err) return res.json({
+								success: false,
+								message: 'Cannot verify the token'
+							});
+	
+					next();
+				});
+			}
+			else if(refreshToken) {
+				if(!username) res.json({
+					success: false,
+					message: "Username is mandatory when refresh token is provided"
+				})
+
+				inMemoryStorage.getUsernamePerToken(refreshToken).then(function(data) {
+					if(data == null) res.status(401).send()
+
+					if(username == data) {
+
+						let token = jwt.sign({}, req.app.get('secret'), {
+							expiresIn: config.tokenValidityInSeconds
 						});
+						let refreshToken = randToken.uid(256)
+						inMemoryStorage.setUsernameAndToken(refreshToken, username);
 						
-				req.decoded = decoded;
-				
-				 next();
-			});
+						res.json({
+							success: true,
+							message: 'Done',
+							token: token,
+							refreshToken: refreshToken
+						})
+					}
+				});
+			}
+
 		},
 		register: function(req, res, next) {
 			if(!userPassValidation.checkUserName(req.body.username)) {
@@ -104,8 +134,6 @@ module.exports = {
 			
 			var salt = generateSalt.getSalt(config.saltLength)
 			var hashedPassword = hashPassword.hashPassword(req.body.password, salt);
-
-			var exists = false;
 			
 			User.findOne({username: req.body.username}, (err, users)=> {
 					if(err) throw err;
