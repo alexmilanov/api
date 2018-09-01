@@ -6,7 +6,7 @@ client.on('connect', function() {
 });
 
 client.on('error', function (err) {
-    console.log('Something went wrong ' + err);
+    throw Error('Something went wrong ' + err);
 });
 
 var config = require('../config');
