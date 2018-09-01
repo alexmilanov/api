@@ -6,6 +6,7 @@ var jwt    = require('jsonwebtoken'); // used to create, sign, and verify tokens
 var randToken = require('rand-token')
 var config = require('../../app/config'); // get our config file
 var User   = require('../../app/models/user'); // get our mongoose model
+var tokenManager = require('../common/tokenManager');
 
 var userPassValidation = require('../../app/common/validation.js');
 var generateSalt = require('../../app/common/security/generateSalt.js');
@@ -38,14 +39,6 @@ module.exports = {
 						});
 					}
 					else {
-						const payload = {
-								admin: user.admin
-						}
-						
-						let token = jwt.sign(payload, req.app.get('secret'), {
-								expiresIn: config.tokenValidityInSeconds
-						});
-
 						user.userAccountData.lastLogin = new Date();
 
 						user.save((err) => {
@@ -54,18 +47,10 @@ module.exports = {
 								message: 'Cannot update last login'
 							})
 						})
-						var refreshToken = randToken.uid(256)
-						
-						inMemoryStorage.setUsernameAndToken(refreshToken, req.body.username);
+						let tokenStructure = tokenManager.getTokenStructure({isAdmin: user.isAdmin}, req)
+						inMemoryStorage.setUsernameAndToken(tokenStructure.refreshToken, req.body.username);
 
-						res.json({
-							success: true,
-							message: 'Done',
-							token: token,
-							refreshToken: refreshToken,
-							issuedAt: Math.round((new Date()).getTime() / 1000),
-							validity: config.tokenValidityInSeconds
-						});
+						res.json(tokenStructure);
 					}
 			})
 		},
@@ -103,20 +88,10 @@ module.exports = {
 
 					if(username == data) {
 
-						let token = jwt.sign({}, req.app.get('secret'), {
-							expiresIn: config.tokenValidityInSeconds
-						});
-						let refreshToken = randToken.uid(256)
+						let tokenStructure = tokenManager.getTokenStructure({}, req)
 						inMemoryStorage.setUsernameAndToken(refreshToken, username);
 						
-						res.json({
-							success: true,
-							message: 'Done',
-							token: token,
-							refreshToken: refreshToken,
-							issuedAt: Math.round((new Date()).getTime() / 1000),
-							validity: config.tokenValidityInSeconds
-						})
+						res.json(tokenStructure)
 					}
 				});
 			}
