@@ -62,7 +62,9 @@ module.exports = {
 							success: true,
 							message: 'Done',
 							token: token,
-							refreshToken: refreshToken
+							refreshToken: refreshToken,
+							issuedAt: Math.round((new Date()).getTime() / 1000),
+							validity: config.tokenValidityInSeconds
 						});
 					}
 			})
@@ -81,11 +83,12 @@ module.exports = {
 
 			if(token) {
 				jwt.verify(token, req.app.get('secret'), (err, decoded) => {
+
 					if(err) return res.json({
 								success: false,
 								message: 'Cannot verify the token'
 							});
-	
+
 					next();
 				});
 			}
@@ -110,7 +113,9 @@ module.exports = {
 							success: true,
 							message: 'Done',
 							token: token,
-							refreshToken: refreshToken
+							refreshToken: refreshToken,
+							issuedAt: Math.round((new Date()).getTime() / 1000),
+							validity: config.tokenValidityInSeconds
 						})
 					}
 				});
@@ -128,7 +133,7 @@ module.exports = {
 			if(!userPassValidation.checkPassword(req.body.password)) {
 				return res.json({
 					success: false,
-					error: 'Password should contain at least ' + config.passwordMinLength + ' symbols'
+					error: 'Password should contain at least ' + config.validations.passwordMinLength + ' symbols'
 				});
 			}
 			
@@ -137,7 +142,7 @@ module.exports = {
 			
 			User.findOne({username: req.body.username}, (err, users)=> {
 					if(err) throw err;
-		
+
 					if(users) {	
 						return res.json({
 							success: false,
@@ -145,31 +150,31 @@ module.exports = {
 							
 						});
 					}
-					else {
-						var user = new User({
-							username: req.body.username,
-							password: hashedPassword,
-							isAdmin: false,
-							salt: salt,
-							email: null,
-							userAccountData: {
-								createdAt: Date(),
-								isActive: true,
-								lastLogin: Date()
-							}
-						});
+
+					var user = new User({
+						username: req.body.username,
+						password: hashedPassword,
+						isAdmin: false,
+						salt: salt,
+						email: null,
+						userAccountData: {
+							createdAt: Date(),
+							isActive: true,
+							lastLogin: Date()
+						}
+					});
 
 
-						user.save((err) => {
-							if(err) throw err;			
-		
-							return res.json({
-								success: true,
-								error: null
-								
-							});
+					user.save((err) => {
+						if(err) throw err;			
+	
+						return res.json({
+							success: true,
+							error: null
+							
 						});
-					}
+					});
+
 			});
 		}
 }
