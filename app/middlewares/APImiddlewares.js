@@ -84,9 +84,9 @@ module.exports = {
 			if(token) {
 				jwt.verify(token, req.app.get('secret'), (err, decoded) => {
 
-					if(err) return res.json({
+					if(err) return res.status(401).json({
 								success: false,
-								message: 'Cannot verify the token'
+								message: 'Invalid token'
 							});
 
 					next();
