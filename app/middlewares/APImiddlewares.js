@@ -3,7 +3,6 @@ This file contain middlewares related with user registration, authentication, to
 */
 
 var jwt    = require('jsonwebtoken'); // used to create, sign, and verify tokens
-var randToken = require('rand-token')
 var config = require('../../app/config'); // get our config file
 var User   = require('../../app/models/user'); // get our mongoose model
 var tokenManager = require('../common/tokenManager');
