@@ -2,6 +2,7 @@ module.exports = {
 
     'secret': 'ilovescotchyscotch',
     'tokenValidityInSeconds': 60,
+    'refreshTokenValidityInSeconds': 86400, //24 hours
     'database': 'mongodb://localhost/User',
     'saltLength': 40,
     

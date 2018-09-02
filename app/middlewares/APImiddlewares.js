@@ -6,6 +6,7 @@ var jwt    = require('jsonwebtoken'); // used to create, sign, and verify tokens
 var config = require('../../app/config'); // get our config file
 var User   = require('../../app/models/user'); // get our mongoose model
 var tokenManager = require('../common/tokenManager');
+var dateTimeUtils = require('../common/dateTimeUtils');
 
 var userPassValidation = require('../../app/common/validation.js');
 var generateSalt = require('../../app/common/security/generateSalt.js');
@@ -46,8 +47,11 @@ module.exports = {
 								message: 'Cannot update last login'
 							})
 						})
-						let tokenStructure = tokenManager.getTokenStructure({isAdmin: user.isAdmin}, req)
+						let tokenStructure = tokenManager.getTokenStructure({isAdmin: user.isAdmin}, req);
+						let currentTimestamp = dateTimeUtils.getCurrentTimestamp();
+
 						inMemoryStorage.setUsernameAndToken(tokenStructure.refreshToken, req.body.username);
+						inMemoryStorage.setTokenIssueTimestamp(tokenStructure.refreshToken, currentTimestamp);
 
 						res.json(tokenStructure);
 					}
@@ -70,7 +74,7 @@ module.exports = {
 
 					if(err) return res.status(401).json({
 								success: false,
-								message: 'Invalid token'
+								message: 'Invalid token, please use your refresh token to get new access token'
 							});
 
 					next();
@@ -83,14 +87,32 @@ module.exports = {
 				})
 
 				inMemoryStorage.getUsernamePerToken(refreshToken).then(function(data) {
-					if(data == null) res.status(401).send()
+					if(data == null) {
+						return res.status(401).json({
+							success: false,
+							message: 'Please login'
+						})
+					}
 
 					if(username == data) {
+						let currentTimestamp = dateTimeUtils.getCurrentTimestamp();
 
-						let tokenStructure = tokenManager.getTokenStructure({}, req)
-						inMemoryStorage.setUsernameAndToken(refreshToken, username);
-						
-						res.json(tokenStructure)
+						inMemoryStorage.getTokenIssuedTimestamp(refreshToken).then(function(tokenTimestamp) {
+							if((currentTimestamp - tokenTimestamp) > config.refreshTokenValidityInSeconds) {
+								return res.status(401).json({
+									success: false,
+									message: 'Your refresh token has expired. Please login again'
+								});
+							}
+							
+							let tokenStructure = tokenManager.getTokenStructure({}, req)
+							//inMemoryStorage.setUsernameAndToken(refreshToken, username);
+							
+							res.json(tokenStructure)
+
+						}).catch(function(err){
+							console.log(err)
+						})
 					}
 				});
 			}
