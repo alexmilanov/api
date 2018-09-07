@@ -87,6 +87,7 @@ module.exports = {
 				})
 
 				inMemoryStorage.getUsernamePerToken(refreshToken).then(function(data) {
+
 					if(data == null) {
 						return res.status(401).json({
 							success: false,
@@ -106,7 +107,8 @@ module.exports = {
 							}
 							
 							let tokenStructure = tokenManager.getTokenStructure({}, req)
-							//inMemoryStorage.setUsernameAndToken(refreshToken, username);
+							inMemoryStorage.setUsernameAndToken(tokenStructure.refreshToken, username);
+							inMemoryStorage.setTokenIssueTimestamp(tokenStructure.refreshToken, currentTimestamp);
 							
 							res.json(tokenStructure)
 
