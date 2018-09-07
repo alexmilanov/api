@@ -32,7 +32,7 @@ module.exports = {
     getTokenIssuedTimestamp: function(token) {
         return new Promise(function(resolve, reject) {
             client.hget(token, 'issuedAt', (err, response) => {
-                console.log(response)
+
                 if(err) reject(err);
 
                 resolve(response);
